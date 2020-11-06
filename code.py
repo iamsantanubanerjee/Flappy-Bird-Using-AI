@@ -167,7 +167,7 @@ def draw_screen(SCREEN, bird, pipes, base, score):
         pipe.draw(SCREEN)
 
     text = FONT.render("Score: " + str(score), 1, (255, 255, 255))
-    SCREEN.blit(text, (150 - text.get_width(), 10))
+    SCREEN.blit(text, (600 - 20 - text.get_width(), 10))
 
     base.draw(SCREEN)
 
@@ -186,7 +186,7 @@ def main():
 
     run = True
     while run:
-        pygame.time.delay(20)
+        pygame.time.delay(10)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
