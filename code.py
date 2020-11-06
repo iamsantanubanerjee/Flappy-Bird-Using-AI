@@ -3,6 +3,7 @@ import pygame
 import time
 import os
 import random
+pygame.font.init()
 
 SCREEN = pygame.display.set_mode((600,800))
 pygame.display.set_caption('Flappy Bird')
@@ -11,6 +12,8 @@ BG = pygame.transform.scale(pygame.image.load(os.path.join("imgs","bg.png")).con
 BASE = pygame.transform.scale(pygame.image.load(os.path.join("imgs","base.png")).convert_alpha(), (600,200))
 BIRD = [pygame.transform.scale2x(pygame.image.load(os.path.join('imgs','bird' + str(x) + '.png'))) for x in range(1,4)]
 PIPE = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","pipe.png")).convert_alpha())
+
+FONT = pygame.font.SysFont("comicsans", 50)
 
 class Bird:
     MAX_ROTATION = 25
@@ -157,11 +160,14 @@ class Base:
         SCREEN.blit(self.IMG, (self.x2, self.y))
 
 
-def draw_screen(SCREEN, bird, pipes, base):
+def draw_screen(SCREEN, bird, pipes, base, score):
     SCREEN.blit(BG, (0,0))
 
     for pipe in pipes:
         pipe.draw(SCREEN)
+
+    text = FONT.render("Score: " + str(score), 1, (255, 255, 255))
+    SCREEN.blit(text, (150 - text.get_width(), 10))
 
     base.draw(SCREEN)
 
@@ -212,7 +218,7 @@ def main():
         if bird.y + bird.img.get_height() >= 700:
             pass
 
-        draw_screen(SCREEN, bird, pipes, base)
+        draw_screen(SCREEN, bird, pipes, base, score)
 
     pygame.quit()
     quit()
