@@ -1,5 +1,5 @@
 import pygame
-#import neat
+import neat
 import time
 import os
 import random
@@ -12,6 +12,8 @@ BG = pygame.transform.scale(pygame.image.load(os.path.join("imgs","bg.png")).con
 BASE = pygame.transform.scale(pygame.image.load(os.path.join("imgs","base.png")).convert_alpha(), (600,200))
 BIRD = [pygame.transform.scale2x(pygame.image.load(os.path.join('imgs','bird' + str(x) + '.png'))) for x in range(1,4)]
 PIPE = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","pipe.png")).convert_alpha())
+
+GEN = 0
 
 FONT = pygame.font.SysFont("comicsans", 50)
 
@@ -137,7 +139,7 @@ class Pipe:
         return False
 
 class Base:
-    VEL = 5
+    VEL = 2.5
     WIDTH = BASE.get_width()
     IMG = BASE
 
@@ -160,7 +162,7 @@ class Base:
         SCREEN.blit(self.IMG, (self.x2, self.y))
 
 
-def draw_screen(SCREEN, bird, pipes, base, score):
+def draw_screen(SCREEN, birds, pipes, base, score, GEN):
     SCREEN.blit(BG, (0,0))
 
     for pipe in pipes:
@@ -169,13 +171,28 @@ def draw_screen(SCREEN, bird, pipes, base, score):
     text = FONT.render("Score: " + str(score), 1, (255, 255, 255))
     SCREEN.blit(text, (600 - 20 - text.get_width(), 10))
 
+    text = FONT.render("Generation: " + str(GEN), 1, (255, 255, 255))
+    SCREEN.blit(text, (600 - 20 - text.get_width(), 40))
+
     base.draw(SCREEN)
 
-    bird.draw(SCREEN)
+    for bird in birds:
+        bird.draw(SCREEN)
     pygame.display.update()
 
-def main():
-    bird = Bird(100,300)
+def main(genomes, config):
+    global GEN
+    GEN += 1
+    birds = []
+    nets = []
+    ge = []
+
+    for genome_id, genome in genomes:
+        genome.fitness = 0  # start with fitness level of 0
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
+        nets.append(net)
+        birds.append(Bird(100, 300))
+        ge.append(genome)
 
     base = Base(700)
 
@@ -186,41 +203,86 @@ def main():
 
     run = True
     while run:
-        pygame.time.delay(10)
+        pygame.time.delay(20)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-        #bird.move()
+                pygame.quit()
+                quit()
+
+
+        pipe_ind = 0
+        if len(birds) > 0:
+            if len(pipes) > 1 and birds[0].x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
+                pipe_ind = 1
+        else:
+            run = False
+            break
+
+        for x, bird in enumerate(birds):
+            ge[x].fitness += 0.1
+            bird.move()
+
+            output = nets[birds.index(bird)].activate((bird.y, abs(bird.y - pipes[pipe_ind].height), abs(bird.y - pipes[pipe_ind].bottom)))
+
+            if output[0] > 0.5:
+                bird.jump()
+
+
+
+
+
         add_pipe = False
         rem = []
         base.move()
         for pipe in pipes:
-            if pipe.collide(bird):
-                pass
+            for x, bird in enumerate(birds):
+                if pipe.collide(bird):
+                    ge[x].fitness -= 1
+                    birds.pop(x)
+                    nets.pop(x)
+                    ge.pop(x)
+
+                if not pipe.passed and pipe.x < bird.x:
+                    pipe.passed = True
+                    add_pipe = True
 
             if pipe.x + pipe.PIPE_TOP.get_width() < 0:
                 rem.append(pipe)
 
-            if not pipe.passed and pipe.x < bird.x:
-                pipe.passed = True
-                add_pipe = True
+
 
             pipe.move()
 
 
         if add_pipe:
             score += 1
+            for g in ge:
+                g.fitness += 5
             pipes.append(Pipe(600))
 
         for r in rem:
             pipes.remove(r)
 
-        if bird.y + bird.img.get_height() >= 700:
-            pass
+        for x, bird in enumerate(birds):
+            if bird.y + bird.img.get_height() >= 700 or bird.y < 0:
+                birds.pop(x)
+                nets.pop(x)
+                ge.pop(x)
 
-        draw_screen(SCREEN, bird, pipes, base, score)
+        base.move()
+        draw_screen(SCREEN, birds, pipes, base, score, GEN)
 
-    pygame.quit()
-    quit()
+def run(config_file):
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                         config_file)
 
-main()
+    popu = neat.Population(config)
+
+    winner = popu.run(main, 50)
+
+if __name__ == '__main__':
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir, 'configuration.txt')
+    run(config_path)
