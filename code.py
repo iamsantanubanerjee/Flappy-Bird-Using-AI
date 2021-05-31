@@ -1,21 +1,28 @@
-import pygame
-import neat
-import time
 import os
 import random
+import time
+
+import neat
+import pygame
+
 pygame.font.init()
 
-SCREEN = pygame.display.set_mode((600,800))
+SCREEN = pygame.display.set_mode((600, 800))
 pygame.display.set_caption('Flappy Bird')
 
-BG = pygame.transform.scale(pygame.image.load(os.path.join("imgs","bg.png")).convert_alpha(), (600, 800))
-BASE = pygame.transform.scale(pygame.image.load(os.path.join("imgs","base.png")).convert_alpha(), (600,200))
-BIRD = [pygame.transform.scale2x(pygame.image.load(os.path.join('imgs','bird' + str(x) + '.png'))) for x in range(1,4)]
-PIPE = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs","pipe.png")).convert_alpha())
+BG = pygame.transform.scale(pygame.image.load(
+    os.path.join("imgs", "bg.png")).convert_alpha(), (600, 800))
+BASE = pygame.transform.scale(pygame.image.load(
+    os.path.join("imgs", "base.png")).convert_alpha(), (600, 200))
+BIRD = [pygame.transform.scale2x(pygame.image.load(
+    os.path.join('imgs', 'bird' + str(x) + '.png'))) for x in range(1, 4)]
+PIPE = pygame.transform.scale2x(pygame.image.load(
+    os.path.join("imgs", "pipe.png")).convert_alpha())
 
 GEN = 0
 
 FONT = pygame.font.SysFont("comicsans", 50)
+
 
 class Bird:
     MAX_ROTATION = 25
@@ -41,9 +48,10 @@ class Bird:
     def move(self):
         self.tick_count += 1
 
-        S = (self.vel*self.tick_count) + (0.5*3*(self.tick_count**2))    #S = ut + (1/2)at^2
+        S = (self.vel*self.tick_count) + \
+            (0.5*3*(self.tick_count**2))  # S = ut + (1/2)at^2
 
-        if S >= 16: #terminal velocity
+        if S >= 16:  # terminal velocity
             S = 16
 
         if S < 0:
@@ -79,15 +87,16 @@ class Bird:
             self.img = self.IMGS[1]
             self.img_count = self.ANIMATION_TIME*2
 
-
         # tilt the bird
         rotated_image = pygame.transform.rotate(self.img, self.tilt)
-        new_rect = rotated_image.get_rect(center = self.img.get_rect(topleft = (self.x, self.y)).center)
+        new_rect = rotated_image.get_rect(
+            center=self.img.get_rect(topleft=(self.x, self.y)).center)
 
         SCREEN.blit(rotated_image, new_rect.topleft)
 
     def get_mask(self):
         return pygame.mask.from_surface(self.img)
+
 
 class Pipe:
     GAP = 200
@@ -122,7 +131,6 @@ class Pipe:
         # draw bottom
         SCREEN.blit(self.PIPE_BOTTOM, (self.x, self.bottom))
 
-
     def collide(self, bird):
         bird_mask = bird.get_mask()
         top_mask = pygame.mask.from_surface(self.PIPE_TOP)
@@ -131,12 +139,13 @@ class Pipe:
         bottom_offset = (self.x - bird.x, self.bottom - round(bird.y))
 
         b_point = bird_mask.overlap(bottom_mask, bottom_offset)
-        t_point = bird_mask.overlap(top_mask,top_offset)
+        t_point = bird_mask.overlap(top_mask, top_offset)
 
         if b_point or t_point:
             return True
 
         return False
+
 
 class Base:
     VEL = 2.5
@@ -163,7 +172,7 @@ class Base:
 
 
 def draw_screen(SCREEN, birds, pipes, base, score, GEN):
-    SCREEN.blit(BG, (0,0))
+    SCREEN.blit(BG, (0, 0))
 
     for pipe in pipes:
         pipe.draw(SCREEN)
@@ -179,6 +188,7 @@ def draw_screen(SCREEN, birds, pipes, base, score, GEN):
     for bird in birds:
         bird.draw(SCREEN)
     pygame.display.update()
+
 
 def main(genomes, config):
     global GEN
@@ -200,7 +210,6 @@ def main(genomes, config):
 
     score = 0
 
-
     run = True
     while run:
         pygame.time.delay(20)
@@ -209,7 +218,6 @@ def main(genomes, config):
                 run = False
                 pygame.quit()
                 quit()
-
 
         pipe_ind = 0
         if len(birds) > 0:
@@ -223,14 +231,11 @@ def main(genomes, config):
             ge[x].fitness += 0.1
             bird.move()
 
-            output = nets[birds.index(bird)].activate((bird.y, abs(bird.y - pipes[pipe_ind].height), abs(bird.y - pipes[pipe_ind].bottom)))
+            output = nets[birds.index(bird)].activate((bird.y, abs(
+                bird.y - pipes[pipe_ind].height), abs(bird.y - pipes[pipe_ind].bottom)))
 
             if output[0] > 0.5:
                 bird.jump()
-
-
-
-
 
         add_pipe = False
         rem = []
@@ -250,10 +255,7 @@ def main(genomes, config):
             if pipe.x + pipe.PIPE_TOP.get_width() < 0:
                 rem.append(pipe)
 
-
-
             pipe.move()
-
 
         if add_pipe:
             score += 1
@@ -273,14 +275,16 @@ def main(genomes, config):
         base.move()
         draw_screen(SCREEN, birds, pipes, base, score, GEN)
 
+
 def run(config_file):
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
-                         neat.DefaultSpeciesSet, neat.DefaultStagnation,
-                         config_file)
+                                neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                config_file)
 
     popu = neat.Population(config)
 
     winner = popu.run(main, 50)
+
 
 if __name__ == '__main__':
     local_dir = os.path.dirname(__file__)
